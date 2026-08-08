@@ -49,6 +49,7 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.H1(
+                    id="header",
                     children='Were sales higher before or after the Pink Morsel price increase on the 15th of January, 2021?',
                     style={"marginBottom": "10px", "color": "#2c3e50"},
                 ),
