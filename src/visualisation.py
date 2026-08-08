@@ -44,20 +44,52 @@ def build_figure(selected_region: str):
     return fig
 
 
-app.layout = html.Div(children=[
-    html.H1(children='Were sales higher before or after the Pink Morsel price increase on the 15th of January, 2021?'),
-    dcc.RadioItems(
-        id='region-selector',
-        options=[{"label": region.title(), "value": region} for region in regions],
-        value="all",
-        inline=True,
-        style={"marginBottom": "20px"},
-    ),
-    dcc.Graph(
-        id='example-graph',
-        figure=build_figure("all")
-    )
-])
+app.layout = html.Div(
+    children=[
+        html.Div(
+            children=[
+                html.H1(
+                    children='Were sales higher before or after the Pink Morsel price increase on the 15th of January, 2021?',
+                    style={"marginBottom": "10px", "color": "#2c3e50"},
+                ),
+                html.P(
+                    children="Select a region to focus the chart on a specific area.",
+                    style={"marginBottom": "20px", "color": "#5f6b7a"},
+                ),
+                dcc.RadioItems(
+                    id='region-selector',
+                    options=[{"label": region.title(), "value": region} for region in regions],
+                    value="all",
+                    inline=True,
+                    style={
+                        "marginBottom": "20px",
+                        "fontWeight": "500",
+                        "color": "#2c3e50",
+                    },
+                ),
+            ],
+            style={
+                "maxWidth": "1100px",
+                "margin": "0 auto",
+                "padding": "24px",
+                "backgroundColor": "#f8fafc",
+                "borderRadius": "12px",
+                "boxShadow": "0 4px 12px rgba(0, 0, 0, 0.08)",
+            },
+        ),
+        html.Div(
+            children=[
+                dcc.Graph(
+                    id='example-graph',
+                    figure=build_figure("all"),
+                    config={"displayModeBar": False},
+                )
+            ],
+            style={"marginTop": "20px"},
+        ),
+    ],
+    style={"padding": "20px", "backgroundColor": "#eef2f7", "minHeight": "100vh"},
+)
 
 @callback(
     Output('example-graph', 'figure'),
