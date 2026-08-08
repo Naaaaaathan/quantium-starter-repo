@@ -2,16 +2,16 @@
 # visit http://127.0.0.1:8050/ in your web browser.
 
 
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, Input, Output, callback
 import plotly.express as px
 import pandas as pd
-import csv
-from typing import Any, Dict, List
 
-def import_csv(file_path: str) -> List[Dict[str, Any]]:
+
+def import_csv(file_path: str):
     """Read a CSV file into a list of dictionaries."""
     with open(file_path, mode="r", newline="", encoding="utf-8") as csv_file:
-        return list(csv.DictReader(csv_file))
+        return list(pd.read_csv(csv_file).to_dict(orient="records"))
+
 
 data = import_csv("data/output.csv")
 
@@ -20,20 +20,51 @@ app = Dash()
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
 df = pd.DataFrame(data)
-df["sales"] = df["sales"].rolling(window=50, min_periods=1).mean()
-fig = px.line(df, x="date", y="sales", color="region")
-fig.update_layout(hovermode="x unified")
-fig.update_traces(opacity=0.5, line=dict(width=1.5))
+df["date"] = pd.to_datetime(df["date"], errors="coerce")
+df["sales"] = pd.to_numeric(df["sales"], errors="coerce")
+df = df.dropna(subset=["date", "sales"]).sort_values(["region", "date"]).reset_index(drop=True)
+
+df["month"] = df["date"].dt.to_period("M").dt.to_timestamp()
+df = (
+    df.groupby(["region", "month"], as_index=False)["sales"]
+    .sum()
+)
+
+# Remove the specific incomplete months from the monthly series.
+df = df[~df["month"].isin(pd.to_datetime(["2018-02-01", "2022-02-01"]))].copy()
+
+regions = ["north", "east", "south", "west", "all"]
+
+
+def build_figure(selected_region: str):
+    filtered_df = df if selected_region == "all" else df[df["region"] == selected_region]
+    fig = px.line(filtered_df, x="month", y="sales", color="region")
+    fig.update_layout(hovermode="x unified")
+    fig.update_traces(opacity=0.5, line=dict(width=1.5))
+    return fig
+
 
 app.layout = html.Div(children=[
     html.H1(children='Were sales higher before or after the Pink Morsel price increase on the 15th of January, 2021?'),
-
-
+    dcc.RadioItems(
+        id='region-selector',
+        options=[{"label": region.title(), "value": region} for region in regions],
+        value="all",
+        inline=True,
+        style={"marginBottom": "20px"},
+    ),
     dcc.Graph(
         id='example-graph',
-        figure=fig
+        figure=build_figure("all")
     )
 ])
+
+@callback(
+    Output('example-graph', 'figure'),
+    Input('region-selector', 'value'))
+
+def update_graph(selected_region: str):
+    return build_figure(selected_region)
 
 if __name__ == '__main__':
     app.run(debug=True)
